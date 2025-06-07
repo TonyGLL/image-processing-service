@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_image_processing
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: image_processing
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - image_processing_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CONFIG_FILE: ${CONFIG_FILE:-dev.env}
+    image: image_processing:0.0.1
+    container_name: image_processing
+    ports:
+      - '3000:3000'
+    environment:
+      - CONFIG_FILE=${CONFIG_FILE:-dev.env}
+      - DB_SOURCE=postgresql://root:secret@postgres_image_processing:5432/image_processing?sslmode=disable
+    depends_on:
+      - db
+    networks:
+      - image_processing_network
+
+networks:
+  image_processing_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
