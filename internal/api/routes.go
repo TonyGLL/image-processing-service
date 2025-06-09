@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/TonyGLL/image-processing-service/internal/middlewares"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -36,6 +37,12 @@ func (server *Server) SetupRoutes(version string) http.Handler {
 
 	v1 := r.Group("/api/v1")
 	{
+		// No need token validation
+		v1.POST("/auth/login", server.login)
+
+		// Token Validation, everything down here need token validation
+		v1.Use(middlewares.ValidateJWT)
+
 		v1.POST("/users", server.createUserHandler)
 	}
 

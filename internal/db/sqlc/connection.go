@@ -6,6 +6,7 @@ import (
 
 type Store interface {
 	UsersQuerier
+	AuthQuerier
 }
 
 type SQLStore struct {

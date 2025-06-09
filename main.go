@@ -7,7 +7,7 @@ import (
 
 	"github.com/TonyGLL/image-processing-service/internal/api"
 	db "github.com/TonyGLL/image-processing-service/internal/db/sqlc"
-	util "github.com/TonyGLL/image-processing-service/internal/utils"
+	utils "github.com/TonyGLL/image-processing-service/internal/utils"
 	_ "github.com/lib/pq"
 )
 
@@ -20,7 +20,7 @@ func main() {
 		log.Fatal("CONFIG_FILE environment variable not set")
 	}
 
-	config, err := util.LoadConfig(".", configFile)
+	config, err := utils.LoadConfig(".", configFile)
 	if err != nil {
 		log.Fatalf("cannot load config: %v", err)
 	}

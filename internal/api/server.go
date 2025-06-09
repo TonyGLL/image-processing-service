@@ -5,16 +5,16 @@ import (
 	"time"
 
 	db "github.com/TonyGLL/image-processing-service/internal/db/sqlc"
-	util "github.com/TonyGLL/image-processing-service/internal/utils"
+	utils "github.com/TonyGLL/image-processing-service/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
 	store  db.Store
-	config util.Config
+	config utils.Config
 }
 
-func NewServer(store db.Store, config util.Config) *http.Server {
+func NewServer(store db.Store, config utils.Config) *http.Server {
 	NewServer := &Server{
 		store:  store,
 		config: config,
