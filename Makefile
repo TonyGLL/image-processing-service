@@ -21,8 +21,7 @@ migratedown:
 
 build:
 	@echo "Building..."
-
-	@CONFIG_FILE=local.env go build -o main cmd/app/main.go
+	@CONFIG_FILE=local.env go build -o main .
 
 	@echo "Build successfully!!!"
 
