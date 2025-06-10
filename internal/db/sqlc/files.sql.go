@@ -7,7 +7,7 @@ package db
 
 import (
 	"context"
-	"time"
+	"encoding/json"
 )
 
 const createImage = `-- name: CreateImage :one
@@ -71,7 +71,25 @@ func (q *Queries) CreateImageOptions(ctx context.Context, arg CreateImageOptions
 }
 
 const getAllImages = `-- name: GetAllImages :many
-SELECT i.id, i.url, i.created_at, i.updated_at, io.id, io.resize_width, io.resize_height, io.crop_width, io.crop_height, io.crop_x, io.crop_y, io.rotate, io.format, io.grayscale, io.sepia, io.image_id FROM image_processing_schema.images i INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id ORDER BY i.id OFFSET $1 LIMIT $2
+SELECT 
+    i.id,
+    i.url,
+    jsonb_build_object(
+        'id', io.id,
+        'resize_width', io.resize_width,
+        'resize_height', io.resize_height,
+        'crop_width', io.crop_width,
+        'crop_height', io.crop_height,
+        'crop_x', io.crop_x,
+        'crop_y', io.crop_y,
+        'rotate', io.rotate,
+        'format', io.format,
+        'grayscale', io.grayscale,
+        'sepia', io.sepia
+    ) AS transformations
+FROM image_processing_schema.images i
+INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id
+ORDER BY i.id OFFSET $1 LIMIT $2
 `
 
 type GetAllImagesParams struct {
@@ -80,22 +98,9 @@ type GetAllImagesParams struct {
 }
 
 type GetAllImagesRow struct {
-	ID           int32     `json:"id"`
-	Url          string    `json:"url"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	ID_2         int32     `json:"id_2"`
-	ResizeWidth  int32     `json:"resize_width"`
-	ResizeHeight int32     `json:"resize_height"`
-	CropWidth    int32     `json:"crop_width"`
-	CropHeight   int32     `json:"crop_height"`
-	CropX        int32     `json:"crop_x"`
-	CropY        int32     `json:"crop_y"`
-	Rotate       int32     `json:"rotate"`
-	Format       string    `json:"format"`
-	Grayscale    bool      `json:"grayscale"`
-	Sepia        bool      `json:"sepia"`
-	ImageID      int32     `json:"image_id"`
+	ID              int32           `json:"id"`
+	Url             string          `json:"url"`
+	Transformations json.RawMessage `json:"transformations"`
 }
 
 func (q *Queries) GetAllImages(ctx context.Context, arg GetAllImagesParams) ([]GetAllImagesRow, error) {
@@ -107,24 +112,7 @@ func (q *Queries) GetAllImages(ctx context.Context, arg GetAllImagesParams) ([]G
 	var items []GetAllImagesRow
 	for rows.Next() {
 		var i GetAllImagesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Url,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.ID_2,
-			&i.ResizeWidth,
-			&i.ResizeHeight,
-			&i.CropWidth,
-			&i.CropHeight,
-			&i.CropX,
-			&i.CropY,
-			&i.Rotate,
-			&i.Format,
-			&i.Grayscale,
-			&i.Sepia,
-			&i.ImageID,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Url, &i.Transformations); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -136,4 +124,40 @@ func (q *Queries) GetAllImages(ctx context.Context, arg GetAllImagesParams) ([]G
 		return nil, err
 	}
 	return items, nil
+}
+
+const getImageById = `-- name: GetImageById :one
+SELECT 
+    i.id,
+    i.url,
+    jsonb_build_object(
+        'id', io.id,
+        'resize_width', io.resize_width,
+        'resize_height', io.resize_height,
+        'crop_width', io.crop_width,
+        'crop_height', io.crop_height,
+        'crop_x', io.crop_x,
+        'crop_y', io.crop_y,
+        'rotate', io.rotate,
+        'format', io.format,
+        'grayscale', io.grayscale,
+        'sepia', io.sepia
+    ) AS transformations
+FROM image_processing_schema.images i
+INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id
+WHERE i.id = $1
+LIMIT 1
+`
+
+type GetImageByIdRow struct {
+	ID              int32           `json:"id"`
+	Url             string          `json:"url"`
+	Transformations json.RawMessage `json:"transformations"`
+}
+
+func (q *Queries) GetImageById(ctx context.Context, id int32) (GetImageByIdRow, error) {
+	row := q.queryRow(ctx, q.getImageByIdStmt, getImageById, id)
+	var i GetImageByIdRow
+	err := row.Scan(&i.ID, &i.Url, &i.Transformations)
+	return i, err
 }

@@ -39,6 +39,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getAllImagesStmt, err = db.PrepareContext(ctx, getAllImages); err != nil {
 		return nil, fmt.Errorf("error preparing query GetAllImages: %w", err)
 	}
+	if q.getImageByIdStmt, err = db.PrepareContext(ctx, getImageById); err != nil {
+		return nil, fmt.Errorf("error preparing query GetImageById: %w", err)
+	}
 	if q.getUserPasswordStmt, err = db.PrepareContext(ctx, getUserPassword); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserPassword: %w", err)
 	}
@@ -70,6 +73,11 @@ func (q *Queries) Close() error {
 	if q.getAllImagesStmt != nil {
 		if cerr := q.getAllImagesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getAllImagesStmt: %w", cerr)
+		}
+	}
+	if q.getImageByIdStmt != nil {
+		if cerr := q.getImageByIdStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getImageByIdStmt: %w", cerr)
 		}
 	}
 	if q.getUserPasswordStmt != nil {
@@ -121,6 +129,7 @@ type Queries struct {
 	createPasswordStmt     *sql.Stmt
 	createUserStmt         *sql.Stmt
 	getAllImagesStmt       *sql.Stmt
+	getImageByIdStmt       *sql.Stmt
 	getUserPasswordStmt    *sql.Stmt
 }
 
@@ -133,6 +142,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createPasswordStmt:     q.createPasswordStmt,
 		createUserStmt:         q.createUserStmt,
 		getAllImagesStmt:       q.getAllImagesStmt,
+		getImageByIdStmt:       q.getImageByIdStmt,
 		getUserPasswordStmt:    q.getUserPasswordStmt,
 	}
 }

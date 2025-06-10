@@ -143,3 +143,28 @@ func (s *Server) listImagesHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"images": data})
 }
+
+type getImageByIdReq struct {
+	ID int32 `uri:"id" binding:"required"`
+}
+
+func (s *Server) getImageByIdHandler(ctx *gin.Context) {
+	var req getImageByIdReq
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	data, err := s.store.GetImageById(ctx, int32(req.ID))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"images": data})
+}

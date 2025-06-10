@@ -45,6 +45,7 @@ func (server *Server) SetupRoutes(version string) http.Handler {
 		v1.POST("/register", server.createUserHandler)
 		v1.POST("/images", server.uploadImageHandler)
 		v1.GET("/images", server.listImagesHandler)
+		v1.GET("/images/:id", server.getImageByIdHandler)
 	}
 
 	return r

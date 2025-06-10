@@ -20,12 +20,43 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
 -- name: GetAllImages :many
 SELECT 
-    i.id AS image_id,
+    i.id,
     i.url,
-    io.id AS option_id,
-    io.format,
-    io.quality
+    jsonb_build_object(
+        'id', io.id,
+        'resize_width', io.resize_width,
+        'resize_height', io.resize_height,
+        'crop_width', io.crop_width,
+        'crop_height', io.crop_height,
+        'crop_x', io.crop_x,
+        'crop_y', io.crop_y,
+        'rotate', io.rotate,
+        'format', io.format,
+        'grayscale', io.grayscale,
+        'sepia', io.sepia
+    ) AS transformations
 FROM image_processing_schema.images i
 INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id
 ORDER BY i.id OFFSET $1 LIMIT $2;
 
+-- name: GetImageById :one
+SELECT 
+    i.id,
+    i.url,
+    jsonb_build_object(
+        'id', io.id,
+        'resize_width', io.resize_width,
+        'resize_height', io.resize_height,
+        'crop_width', io.crop_width,
+        'crop_height', io.crop_height,
+        'crop_x', io.crop_x,
+        'crop_y', io.crop_y,
+        'rotate', io.rotate,
+        'format', io.format,
+        'grayscale', io.grayscale,
+        'sepia', io.sepia
+    ) AS transformations
+FROM image_processing_schema.images i
+INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id
+WHERE i.id = $1
+LIMIT 1;
