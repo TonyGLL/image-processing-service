@@ -24,11 +24,20 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.createImageStmt, err = db.PrepareContext(ctx, createImage); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateImage: %w", err)
+	}
+	if q.createImageOptionsStmt, err = db.PrepareContext(ctx, createImageOptions); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateImageOptions: %w", err)
+	}
 	if q.createPasswordStmt, err = db.PrepareContext(ctx, createPassword); err != nil {
 		return nil, fmt.Errorf("error preparing query CreatePassword: %w", err)
 	}
 	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
+	}
+	if q.getAllImagesStmt, err = db.PrepareContext(ctx, getAllImages); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllImages: %w", err)
 	}
 	if q.getUserPasswordStmt, err = db.PrepareContext(ctx, getUserPassword); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserPassword: %w", err)
@@ -38,6 +47,16 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.createImageStmt != nil {
+		if cerr := q.createImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createImageStmt: %w", cerr)
+		}
+	}
+	if q.createImageOptionsStmt != nil {
+		if cerr := q.createImageOptionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createImageOptionsStmt: %w", cerr)
+		}
+	}
 	if q.createPasswordStmt != nil {
 		if cerr := q.createPasswordStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createPasswordStmt: %w", cerr)
@@ -46,6 +65,11 @@ func (q *Queries) Close() error {
 	if q.createUserStmt != nil {
 		if cerr := q.createUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+		}
+	}
+	if q.getAllImagesStmt != nil {
+		if cerr := q.getAllImagesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllImagesStmt: %w", cerr)
 		}
 	}
 	if q.getUserPasswordStmt != nil {
@@ -90,19 +114,25 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                  DBTX
-	tx                  *sql.Tx
-	createPasswordStmt  *sql.Stmt
-	createUserStmt      *sql.Stmt
-	getUserPasswordStmt *sql.Stmt
+	db                     DBTX
+	tx                     *sql.Tx
+	createImageStmt        *sql.Stmt
+	createImageOptionsStmt *sql.Stmt
+	createPasswordStmt     *sql.Stmt
+	createUserStmt         *sql.Stmt
+	getAllImagesStmt       *sql.Stmt
+	getUserPasswordStmt    *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                  tx,
-		tx:                  tx,
-		createPasswordStmt:  q.createPasswordStmt,
-		createUserStmt:      q.createUserStmt,
-		getUserPasswordStmt: q.getUserPasswordStmt,
+		db:                     tx,
+		tx:                     tx,
+		createImageStmt:        q.createImageStmt,
+		createImageOptionsStmt: q.createImageOptionsStmt,
+		createPasswordStmt:     q.createPasswordStmt,
+		createUserStmt:         q.createUserStmt,
+		getAllImagesStmt:       q.getAllImagesStmt,
+		getUserPasswordStmt:    q.getUserPasswordStmt,
 	}
 }

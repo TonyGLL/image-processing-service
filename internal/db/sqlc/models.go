@@ -8,6 +8,28 @@ import (
 	"time"
 )
 
+type ImageProcessingSchemaImage struct {
+	ID        int32     `json:"id"`
+	Url       string    `json:"url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type ImageProcessingSchemaImagesOption struct {
+	ID           int32  `json:"id"`
+	ResizeWidth  int32  `json:"resize_width"`
+	ResizeHeight int32  `json:"resize_height"`
+	CropWidth    int32  `json:"crop_width"`
+	CropHeight   int32  `json:"crop_height"`
+	CropX        int32  `json:"crop_x"`
+	CropY        int32  `json:"crop_y"`
+	Rotate       int32  `json:"rotate"`
+	Format       string `json:"format"`
+	Grayscale    bool   `json:"grayscale"`
+	Sepia        bool   `json:"sepia"`
+	ImageID      int32  `json:"image_id"`
+}
+
 type ImageProcessingSchemaPassword struct {
 	ID        int32     `json:"id"`
 	Value     string    `json:"value"`

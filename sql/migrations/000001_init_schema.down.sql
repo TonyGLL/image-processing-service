@@ -1,2 +1,4 @@
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS passwords;
+DROP TABLE IF EXISTS images;
+DROP TABLE IF EXISTS images_options;

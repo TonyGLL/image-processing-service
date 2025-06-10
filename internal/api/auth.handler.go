@@ -19,7 +19,7 @@ type loginResponse struct {
 	Token    string `json:"token"`
 }
 
-func (s *Server) login(ctx *gin.Context) {
+func (s *Server) loginHandler(ctx *gin.Context) {
 	var req loginReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

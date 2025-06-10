@@ -9,6 +9,7 @@ import (
 type Store interface {
 	UsersQuerier
 	AuthQuerier
+	FilesQuerier
 	ExecTx(ctx context.Context, fn func(*Queries) error) error
 }
 

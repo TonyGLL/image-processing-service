@@ -37,12 +37,14 @@ func (server *Server) SetupRoutes(version string) http.Handler {
 	v1 := r.Group("/api/v1")
 	{
 		// No need token validation
-		v1.POST("/auth/login", server.login)
+		v1.POST("/login", server.loginHandler)
 
 		// Token Validation, everything down here need token validation
 		v1.Use(middlewares.ValidateJWT)
 
-		v1.POST("/users", server.createUserHandler)
+		v1.POST("/register", server.createUserHandler)
+		v1.POST("/images", server.uploadImageHandler)
+		v1.GET("/images", server.listImagesHandler)
 	}
 
 	return r
