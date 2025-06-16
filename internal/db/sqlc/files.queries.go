@@ -7,6 +7,8 @@ type FilesQuerier interface {
 	CreateImageOptions(ctx context.Context, arg CreateImageOptionsParams) error
 	GetAllImages(ctx context.Context, arg GetAllImagesParams) ([]GetAllImagesRow, error)
 	GetImageById(ctx context.Context, id int32) (GetImageByIdRow, error)
+	UpdateImageResizeOptions(ctx context.Context, arg UpdateImageResizeOptionsParams) error
+	UpdateImageCropOptions(ctx context.Context, arg UpdateImageCropOptionsParams) error
 }
 
 var _ FilesQuerier = (*Queries)(nil)

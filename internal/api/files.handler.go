@@ -6,10 +6,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"image"
+	"log"
 	"path/filepath"
 	"strings"
 
 	db "github.com/TonyGLL/image-processing-service/internal/db/sqlc"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 )
 
@@ -142,6 +145,148 @@ func (s *Server) listImagesHandler(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"images": data})
+}
+
+type TransformationPayload struct {
+	Resize *struct {
+		Width  int `json:"width"`
+		Height int `json:"height"`
+	} `json:"resize,omitempty"`
+	Crop *struct {
+		Width  int `json:"width"`
+		Height int `json:"height"`
+		X      int `json:"x"`
+		Y      int `json:"y"`
+	} `json:"crop,omitempty"`
+	Rotate  *int    `json:"rotate,omitempty"`   // Pointer to allow optional
+	Format  *string `json:"format,omitempty"`   // Pointer to allow optional
+	Filters *struct {
+		Grayscale *bool `json:"grayscale,omitempty"` // Pointer to allow optional
+		Sepia     *bool `json:"sepia,omitempty"`     // Pointer to allow optional
+	} `json:"filters,omitempty"`
+}
+
+type ImageTransformRequest struct {
+	Transformations TransformationPayload `json:"transformations" binding:"required"`
+}
+
+type getImageIdURI struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+func (s *Server) transformImageHandler(ctx *gin.Context) {
+	var uri getImageIdURI
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var req ImageTransformRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	imageData, err := s.store.GetImageById(ctx, uri.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("image with ID %d not found", uri.ID)))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	// Derive local file path from URL. This is a simplification and might need adjustment.
+	// Assumes URL is like "http://localhost:3000/images/filename.jpg"
+	// and files are stored in "./images/"
+	filename := filepath.Base(imageData.Url)
+	localImagePath := filepath.Join("./images", filename)
+
+	if req.Transformations.Resize != nil && (req.Transformations.Resize.Width > 0 || req.Transformations.Resize.Height > 0) {
+		log.Printf("Resizing image ID %d to width %d, height %d", uri.ID, req.Transformations.Resize.Width, req.Transformations.Resize.Height)
+
+		srcImage, err := imaging.Open(localImagePath)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to open image %s: %v", localImagePath, err)))
+			return
+		}
+
+		dstImage := imaging.Resize(srcImage, req.Transformations.Resize.Width, req.Transformations.Resize.Height, imaging.Lanczos)
+
+		// Overwrite the original image
+		err = imaging.Save(dstImage, localImagePath)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to save resized image %s: %v", localImagePath, err)))
+			return
+		}
+		log.Printf("Successfully resized and saved image %s", localImagePath)
+
+		// Update database
+		params := db.UpdateImageResizeOptionsParams{
+			ResizeWidth:  int32(req.Transformations.Resize.Width),
+			ResizeHeight: int32(req.Transformations.Resize.Height),
+			ImageID:      uri.ID,
+		}
+		err = s.store.UpdateImageResizeOptions(ctx, params)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to update image resize options in DB: %v", err)))
+			return
+		}
+		log.Printf("Successfully updated resize options for image ID %d in DB", uri.ID)
+	}
+
+	if req.Transformations.Crop != nil && req.Transformations.Crop.Width > 0 && req.Transformations.Crop.Height > 0 {
+		log.Printf("Cropping image ID %d to width %d, height %d at x:%d, y:%d",
+			uri.ID, req.Transformations.Crop.Width, req.Transformations.Crop.Height, req.Transformations.Crop.X, req.Transformations.Crop.Y)
+
+		currentImage, err := imaging.Open(localImagePath)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to open image %s for cropping: %v", localImagePath, err)))
+			return
+		}
+
+		cropRect := image.Rect(
+			req.Transformations.Crop.X,
+			req.Transformations.Crop.Y,
+			req.Transformations.Crop.X+req.Transformations.Crop.Width,
+			req.Transformations.Crop.Y+req.Transformations.Crop.Height,
+		)
+		dstImage := imaging.Crop(currentImage, cropRect)
+
+		err = imaging.Save(dstImage, localImagePath)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to save cropped image %s: %v", localImagePath, err)))
+			return
+		}
+		log.Printf("Successfully cropped and saved image %s", localImagePath)
+
+		params := db.UpdateImageCropOptionsParams{
+			CropWidth:  int32(req.Transformations.Crop.Width),
+			CropHeight: int32(req.Transformations.Crop.Height),
+			CropX:      int32(req.Transformations.Crop.X),
+			CropY:      int32(req.Transformations.Crop.Y),
+			ImageID:    uri.ID,
+		}
+		err = s.store.UpdateImageCropOptions(ctx, params)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(fmt.Errorf("failed to update image crop options in DB: %v", err)))
+			return
+		}
+		log.Printf("Successfully updated crop options for image ID %d in DB", uri.ID)
+	}
+
+	// After all transformations, fetch the updated image data
+	updatedImageData, err := s.store.GetImageById(ctx, uri.ID) // Refetch to get updated options
+	if err != nil {
+		// Handle error, though unlikely if previous steps succeeded
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":           "Image transformations applied successfully.",
+		"image_id":          uri.ID,
+		"updated_details": updatedImageData,
+	})
 }
 
 type getImageByIdReq struct {

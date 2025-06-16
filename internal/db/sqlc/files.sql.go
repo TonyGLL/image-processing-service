@@ -161,3 +161,51 @@ func (q *Queries) GetImageById(ctx context.Context, id int32) (GetImageByIdRow, 
 	err := row.Scan(&i.ID, &i.Url, &i.Transformations)
 	return i, err
 }
+
+const updateImageCropOptions = `-- name: UpdateImageCropOptions :exec
+UPDATE image_processing_schema.images_options
+SET crop_width = $1,
+    crop_height = $2,
+    crop_x = $3,
+    crop_y = $4,
+    updated_at = now()
+WHERE image_id = $5
+`
+
+type UpdateImageCropOptionsParams struct {
+	CropWidth  int32 `json:"crop_width"`
+	CropHeight int32 `json:"crop_height"`
+	CropX      int32 `json:"crop_x"`
+	CropY      int32 `json:"crop_y"`
+	ImageID    int32 `json:"image_id"`
+}
+
+func (q *Queries) UpdateImageCropOptions(ctx context.Context, arg UpdateImageCropOptionsParams) error {
+	_, err := q.exec(ctx, q.updateImageCropOptionsStmt, updateImageCropOptions,
+		arg.CropWidth,
+		arg.CropHeight,
+		arg.CropX,
+		arg.CropY,
+		arg.ImageID,
+	)
+	return err
+}
+
+const updateImageResizeOptions = `-- name: UpdateImageResizeOptions :exec
+UPDATE image_processing_schema.images_options
+SET resize_width = $1,
+    resize_height = $2,
+    updated_at = now()
+WHERE image_id = $3
+`
+
+type UpdateImageResizeOptionsParams struct {
+	ResizeWidth  int32 `json:"resize_width"`
+	ResizeHeight int32 `json:"resize_height"`
+	ImageID      int32 `json:"image_id"`
+}
+
+func (q *Queries) UpdateImageResizeOptions(ctx context.Context, arg UpdateImageResizeOptionsParams) error {
+	_, err := q.exec(ctx, q.updateImageResizeOptionsStmt, updateImageResizeOptions, arg.ResizeWidth, arg.ResizeHeight, arg.ImageID)
+	return err
+}
