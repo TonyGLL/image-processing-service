@@ -60,3 +60,19 @@ FROM image_processing_schema.images i
 INNER JOIN image_processing_schema.images_options io ON io.image_id = i.id
 WHERE i.id = $1
 LIMIT 1;
+
+-- name: UpdateImageResizeOptions :exec
+UPDATE image_processing_schema.images_options
+SET resize_width = $1,
+    resize_height = $2,
+    updated_at = now()
+WHERE image_id = $3;
+
+-- name: UpdateImageCropOptions :exec
+UPDATE image_processing_schema.images_options
+SET crop_width = $1,
+    crop_height = $2,
+    crop_x = $3,
+    crop_y = $4,
+    updated_at = now()
+WHERE image_id = $5;

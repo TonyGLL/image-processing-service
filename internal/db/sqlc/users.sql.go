@@ -33,3 +33,19 @@ func (q *Queries) CreateUser(ctx context.Context, username string) (int32, error
 	err := row.Scan(&id)
 	return id, err
 }
+
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, username FROM image_processing_schema.users WHERE username = $1
+`
+
+type GetUserByUsernameRow struct {
+	ID       int32  `json:"id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
+	row := q.queryRow(ctx, q.getUserByUsernameStmt, getUserByUsername, username)
+	var i GetUserByUsernameRow
+	err := row.Scan(&i.ID, &i.Username)
+	return i, err
+}

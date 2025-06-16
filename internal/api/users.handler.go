@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	db "github.com/TonyGLL/image-processing-service/internal/db/sqlc"
+	"github.com/TonyGLL/image-processing-service/internal/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,6 +14,12 @@ import (
 type CreateUserRequest struct {
 	UserName string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type registerUserResponse struct {
+	UserID   int32  `json:"user_id"`
+	UserName string `json:"username"`
+	Token    string `json:"token"`
 }
 
 // Create user	godoc
@@ -69,5 +76,16 @@ func (s *Server) createUserHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "User created successfully."})
+	token, err := utils.GenerateToken(req.UserName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	response := registerUserResponse{
+		UserID:   userId,
+		UserName: req.UserName,
+		Token:    token,
+	}
+	ctx.JSON(http.StatusOK, response)
 }

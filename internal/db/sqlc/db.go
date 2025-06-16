@@ -42,8 +42,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getImageByIdStmt, err = db.PrepareContext(ctx, getImageById); err != nil {
 		return nil, fmt.Errorf("error preparing query GetImageById: %w", err)
 	}
+	if q.getUserByUsernameStmt, err = db.PrepareContext(ctx, getUserByUsername); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserByUsername: %w", err)
+	}
 	if q.getUserPasswordStmt, err = db.PrepareContext(ctx, getUserPassword); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserPassword: %w", err)
+	}
+	if q.updateImageCropOptionsStmt, err = db.PrepareContext(ctx, updateImageCropOptions); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateImageCropOptions: %w", err)
+	}
+	if q.updateImageResizeOptionsStmt, err = db.PrepareContext(ctx, updateImageResizeOptions); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateImageResizeOptions: %w", err)
 	}
 	return &q, nil
 }
@@ -80,9 +89,24 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getImageByIdStmt: %w", cerr)
 		}
 	}
+	if q.getUserByUsernameStmt != nil {
+		if cerr := q.getUserByUsernameStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserByUsernameStmt: %w", cerr)
+		}
+	}
 	if q.getUserPasswordStmt != nil {
 		if cerr := q.getUserPasswordStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserPasswordStmt: %w", cerr)
+		}
+	}
+	if q.updateImageCropOptionsStmt != nil {
+		if cerr := q.updateImageCropOptionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateImageCropOptionsStmt: %w", cerr)
+		}
+	}
+	if q.updateImageResizeOptionsStmt != nil {
+		if cerr := q.updateImageResizeOptionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateImageResizeOptionsStmt: %w", cerr)
 		}
 	}
 	return err
@@ -122,27 +146,33 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                     DBTX
-	tx                     *sql.Tx
-	createImageStmt        *sql.Stmt
-	createImageOptionsStmt *sql.Stmt
-	createPasswordStmt     *sql.Stmt
-	createUserStmt         *sql.Stmt
-	getAllImagesStmt       *sql.Stmt
-	getImageByIdStmt       *sql.Stmt
-	getUserPasswordStmt    *sql.Stmt
+	db                           DBTX
+	tx                           *sql.Tx
+	createImageStmt              *sql.Stmt
+	createImageOptionsStmt       *sql.Stmt
+	createPasswordStmt           *sql.Stmt
+	createUserStmt               *sql.Stmt
+	getAllImagesStmt             *sql.Stmt
+	getImageByIdStmt             *sql.Stmt
+	getUserByUsernameStmt        *sql.Stmt
+	getUserPasswordStmt          *sql.Stmt
+	updateImageCropOptionsStmt   *sql.Stmt
+	updateImageResizeOptionsStmt *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                     tx,
-		tx:                     tx,
-		createImageStmt:        q.createImageStmt,
-		createImageOptionsStmt: q.createImageOptionsStmt,
-		createPasswordStmt:     q.createPasswordStmt,
-		createUserStmt:         q.createUserStmt,
-		getAllImagesStmt:       q.getAllImagesStmt,
-		getImageByIdStmt:       q.getImageByIdStmt,
-		getUserPasswordStmt:    q.getUserPasswordStmt,
+		db:                           tx,
+		tx:                           tx,
+		createImageStmt:              q.createImageStmt,
+		createImageOptionsStmt:       q.createImageOptionsStmt,
+		createPasswordStmt:           q.createPasswordStmt,
+		createUserStmt:               q.createUserStmt,
+		getAllImagesStmt:             q.getAllImagesStmt,
+		getImageByIdStmt:             q.getImageByIdStmt,
+		getUserByUsernameStmt:        q.getUserByUsernameStmt,
+		getUserPasswordStmt:          q.getUserPasswordStmt,
+		updateImageCropOptionsStmt:   q.updateImageCropOptionsStmt,
+		updateImageResizeOptionsStmt: q.updateImageResizeOptionsStmt,
 	}
 }

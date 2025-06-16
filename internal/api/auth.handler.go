@@ -14,7 +14,8 @@ type loginReq struct {
 	Password string `json:"password" binding:"required"`
 }
 
-type loginResponse struct {
+type loginUserResponse struct {
+	UserID   int32  `json:"user_id"`
 	UserName string `json:"username"`
 	Token    string `json:"token"`
 }
@@ -48,8 +49,19 @@ func (s *Server) loginHandler(ctx *gin.Context) {
 		return
 	}
 
-	response := loginResponse{
-		UserName: req.UserName,
+	user, err := s.store.GetUserByUsername(ctx, req.UserName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	response := loginUserResponse{
+		UserID:   user.ID,
+		UserName: user.Username,
 		Token:    token,
 	}
 
